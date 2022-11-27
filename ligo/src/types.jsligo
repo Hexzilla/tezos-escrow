@@ -1,0 +1,7 @@
+export type escrow_storage = {
+  admin: address,
+  pending_admin: option<address>,
+  paused: bool,
+
+  escrow: tez,
+};

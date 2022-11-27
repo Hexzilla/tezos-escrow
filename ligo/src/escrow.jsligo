@@ -1,0 +1,58 @@
+#import "types.jsligo" "Types"
+#import "admin.jsligo" "Admin"
+
+type escrow_storage = Types.escrow_storage;
+
+type escrow_param =
+    ["Admin", Admin.simple_admin]
+  | ["Deposit"]
+  | ["Withdraw", address];
+
+type return_type = [list<operation>, escrow_storage];
+
+const empty_operation_list = (list([]) as list<operation>);
+
+const deposit = (storage: escrow_storage) : return_type => {
+  const amount = Tezos.get_amount();
+  if (amount <= (0 as tez)) {
+    return failwith("INVALID_TEZOS_AMOUNT");
+  }
+
+  const new_s: escrow_storage = {
+    ...storage,
+    escrow: storage.escrow + amount,
+  };
+  return [empty_operation_list, new_s];
+}
+
+const withdraw = ([to, storage]: [address, escrow_storage]) : return_type => {
+  const amount = storage.escrow;
+  if (amount <= (0 as tez)) {
+    return failwith("INSUFFICIENT_ESCROW");
+  }
+
+  const receiver = Tezos.get_contract_with_error(to, "INVALID_ADDRESS") as contract<unit>;
+  const op = Tezos.transaction(unit, amount, receiver);
+
+  const new_s = {
+    ...storage,
+    escrow: (0 as tez),
+  }
+  return [list([op]), new_s];
+}
+
+export const main = ([param, storage] : [escrow_param, escrow_storage]) : return_type => {
+  match(param, {
+    Admin: (p: Admin.simple_admin) => {
+      return Admin.main(p, storage);
+    },
+    Deposit: () => {
+      Admin.fail_if_not_admin(storage);
+      return deposit(storage);
+    },
+    Withdraw: (to: address) => {
+      Admin.fail_if_not_admin(storage);
+      return withdraw(to, storage);
+    },
+  });
+};
