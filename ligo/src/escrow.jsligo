@@ -47,7 +47,6 @@ export const main = ([param, storage] : [escrow_param, escrow_storage]) : return
       return Admin.main(p, storage);
     },
     Deposit: () => {
-      Admin.fail_if_not_admin(storage);
       return deposit(storage);
     },
     Withdraw: (to: address) => {
